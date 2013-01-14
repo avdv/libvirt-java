@@ -93,6 +93,12 @@ public class Connect {
 
             void onPMWakeup(Connect connect, Domain domain, int reason);
         }
+
+        public interface PMSuspendCallback {
+            final int eventID = DomainEventID.PMSUSPEND;
+
+            void onPMSuspend(Connect connect, Domain domain, int reason);
+        }
     }
 
     /**
@@ -547,6 +553,41 @@ public class Connect {
             };
 
         return domainEventRegister(domain, cb.eventID, virCB);
+    }
+
+    int domainEventRegister(Domain domain, final DomainEvent.PMSuspendCallback cb) throws LibvirtException {
+        if (cb == null)
+            throw new IllegalArgumentException("PMSuspendCallback cannot be null");
+
+        Libvirt.VirDomainEventCallback virCB =
+            new Libvirt.VirConnectDomainEventPMChangeCallback() {
+                @Override
+                public void eventCallback(ConnectionPointer virConnectPtr, DomainPointer virDomainPointer,
+                                          int reason, com.sun.jna.Pointer opaque) {
+                    assert(VCP.equals(virConnectPtr));
+                    Domain d = new Domain(Connect.this, virDomainPointer);
+                    cb.onPMSuspend(Connect.this, d, reason);
+                }
+            };
+
+        return domainEventRegister(domain, cb.eventID, virCB);
+    }
+
+    /**
+     * Adds a callback to receive notifications of PMSuspend events
+     * occurring on some domain.
+     *
+     * @see <a
+     *      href="http://www.libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventRegisterAny">Libvirt
+     *      Documentation</a>
+     * @param cb
+     *            the PMSuspendCallback instance
+     * @return The return value from this method is a positive integer identifier for the callback.
+     * @throws LibvirtException on failure
+     */
+    public int domainEventRegister(final DomainEvent.PMSuspendCallback cb) throws LibvirtException
+    {
+        return domainEventRegister(null, cb);
     }
 
     /**
