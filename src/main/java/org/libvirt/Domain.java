@@ -1043,6 +1043,22 @@ public class Domain {
     }
 
     /**
+     * Adds a callback to receive notifications of IOError domain events
+     * occurring on this domain.
+     *
+     * @see <a
+     *      href="http://www.libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventRegisterAny">Libvirt
+     *      Documentation</a>
+     * @param cb
+     *            the IOErrorCallback instance
+     * @return The return value from this method is a positive integer identifier for the callback.
+     * @throws LibvirtException on failure
+     */
+    public int register(final Connect.DomainEvent.IOErrorCallback cb) throws LibvirtException {
+        return virConnect.domainEventRegister(this, cb);
+    }
+
+    /**
      * Revert the domain to a given snapshot.
      *
      * @see <a href=

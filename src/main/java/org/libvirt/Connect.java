@@ -49,6 +49,84 @@ public class Connect {
         static final int PMSUSPEND = 12;
     }
 
+    public static final class DomainEvent {
+        /* Event Callbacks */
+
+        public enum IOErrorAction {
+            /**
+             * No action, I/O error ignored.
+             */
+            NONE,
+
+            /**
+             * Guest CPUs are paused.
+             */
+            PAUSE,
+
+            /**
+             * I/O error was reported to the guest OS.
+             */
+            REPORT,
+
+            /**
+             * An unknown action was taken.
+             */
+            UNKNOWN;
+
+            private static final IOErrorAction vals[] = IOErrorAction.values();
+
+            static {
+                // make sure that the enum constants have the correct
+                // ordinal number assigned in correspondence to the
+                // values of the virDomainEventIOErrorAction enum
+                // members
+
+                assert NONE.ordinal() == 0;
+                assert PAUSE.ordinal() == 1;
+                assert REPORT.ordinal() == 2;
+
+                // must be the last constant
+                assert UNKNOWN.ordinal() == vals.length - 1;
+            }
+
+            /**
+             * Look up a constant of this enum by its ordinal number.
+             *
+             * @return the corresponding enum constant when such a constant exists,
+             *         otherwise {@link #UNKNOWN}
+             *
+             * @throws IllegalArgumentException if {@code ordinal} is negative
+             */
+            public static IOErrorAction get(final int ordinal) {
+                if (ordinal < 0)
+                    throw new IllegalArgumentException("ordinal must be >= 0");
+
+                return vals[Math.min(ordinal, vals.length - 1)];
+            }
+        }
+
+        /**
+         * Interface for receiving domain I/O error events.
+         */
+        public interface IOErrorCallback {
+            final int eventID = DomainEventID.IO_ERROR;
+
+            /**
+             * This method gets called upon a domain I/O error event.
+             *
+             * @param connect  the connection on which the event occurred
+             * @param domain   the domain which got an I/O error
+             * @param srcPath  the src of the block device with errors
+             * @param devAlias the device alias of the block device with errors
+             * @param action   the action that is to be taken due to the I/O error
+             */
+            void onIOError(Connect connect, Domain domain,
+                           String srcPath,
+                           String devAlias,
+                           IOErrorAction action);
+        }
+    }
+
     /**
      * Get the version of a connection.
      *
@@ -381,6 +459,46 @@ public class Connect {
         return processError(libvirt.virConnectDomainEventRegisterAny(VCP, ptr,
                                                                      eventID, cb,
                                                                      null, null));
+    }
+
+    int domainEventRegister(Domain domain, final DomainEvent.IOErrorCallback cb) throws LibvirtException {
+        if (cb == null)
+            throw new IllegalArgumentException("IOError callback cannot be null");
+
+        Libvirt.VirConnectDomainEventIOErrorCallback virCB = new Libvirt.VirConnectDomainEventIOErrorCallback() {
+                @Override
+                public void eventCallback(ConnectionPointer virConnectPtr, DomainPointer virDomainPointer,
+                                          String srcPath,
+                                          String devAlias,
+                                          int action,
+                                          Pointer opaque) {
+                    assert VCP.equals(virConnectPtr);
+
+                    Domain d = new Domain(Connect.this, virDomainPointer);
+                    cb.onIOError(Connect.this, d,
+                                 srcPath,
+                                 devAlias,
+                                 DomainEvent.IOErrorAction.get(action));
+                }
+            };
+
+        return domainEventRegister(domain, cb.eventID, virCB);
+    }
+
+    /**
+     * Adds a callback to receive notifications of IOError domain events
+     * occurring on a domain.
+     *
+     * @see <a
+     *      href="http://www.libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventRegisterAny">Libvirt
+     *      Documentation</a>
+     * @param cb
+     *            the IOErrorCallback instance
+     * @return The return value from this method is a positive integer identifier for the callback.
+     * @throws LibvirtException on failure
+     */
+    public int domainEventRegister(final DomainEvent.IOErrorCallback cb) throws LibvirtException {
+        return domainEventRegister(null, cb);
     }
 
     /**
