@@ -307,14 +307,11 @@ public class Connect {
      *      href="http://www.libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventDeregisterAny">Libvirt
      *      Documentation</a>
      * @param callbackID
-     *            the callback to deregister
-     * @return 0 on success, -1 on failure
+     *            the callback identifier
      * @throws LibvirtException
      */
-    public int domainEventDeregisterAny(int callbackID) throws LibvirtException {
-        int returnValue = libvirt.virConnectDomainEventDeregisterAny(VCP, callbackID);
-        processError();
-        return returnValue;
+    public void domainEventDeregister(int callbackID) throws LibvirtException {
+        processError(libvirt.virConnectDomainEventDeregisterAny(VCP, callbackID));
     }
 
     /**
