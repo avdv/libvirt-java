@@ -342,6 +342,42 @@ public class Connect {
     }
 
     /**
+     * Registers a default event implementation based on the poll()
+     * system call.
+     * <p>
+     * Once registered, the application has to invoke
+     * {@link #processEvent} in a loop to process events.
+     * <p>
+     * Note: You must call this function before connecting to the
+     *       hypervisor.
+     *
+     * @see #processEvent
+     */
+    public static void initEventLoop() throws LibvirtException {
+        if (libvirt.virEventRegisterDefaultImpl() == -1)
+            ErrorHandler.processError(libvirt);
+    }
+
+    /**
+     * Run one iteration of the event loop.
+     * <p>
+     * Applications will generally want to have a thread which invokes
+     * this method in an infinite loop:
+     * <pre>
+     * {@code while (true) connection.processEvent(); }
+     * </pre>
+     * <p>
+     * Failure to do so may result in connections being closed
+     * unexpectedly as a result of keepalive timeout.
+     *
+     * @see #initEventLoop()
+     */
+    public void processEvent() throws LibvirtException {
+        if (libvirt.virEventRunDefaultImpl() == -1)
+            ErrorHandler.processError(Libvirt.INSTANCE);
+   }
+
+    /**
      * Finds a domain based on the hypervisor ID number.
      *
      * @param id
