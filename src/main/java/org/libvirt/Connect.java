@@ -350,6 +350,16 @@ public class Connect {
             ErrorHandler.processError(Libvirt.INSTANCE);
    }
 
+    int domainEventRegister(Domain domain, int eventID, Libvirt.VirDomainEventCallback cb)
+        throws LibvirtException
+    {
+        DomainPointer ptr = domain == null ? null : domain.VDP;
+
+        return processError(libvirt.virConnectDomainEventRegisterAny(VCP, ptr,
+                                                                     eventID, cb,
+                                                                     null, null));
+    }
+
     /**
      * Finds a domain based on the hypervisor ID number.
      *
