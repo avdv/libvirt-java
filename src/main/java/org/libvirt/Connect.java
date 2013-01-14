@@ -318,30 +318,6 @@ public class Connect {
     }
 
     /**
-     * Adds a callback to receive notifications of arbitrary domain events
-     * occurring on a domain.
-     *
-     * @see <a
-     *      href="http://www.libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventRegisterAny">Libvirt
-     *      Documentation</a>
-     * @param domain
-     *            option domain to limit the events monitored
-     * @param eventId
-     *            the events to monitor
-     * @param cb
-     *            the callback function to use.
-     * @return The return value from this method is a positive integer
-     *         identifier for the callback.
-     * @throws LibvirtException on failure
-     */
-    public int domainEventRegisterAny(Domain domain, int eventId, Libvirt.VirConnectDomainEventGenericCallback cb)
-            throws LibvirtException {
-        DomainPointer ptr = domain == null ? null : domain.VDP;
-        int returnValue = libvirt.virConnectDomainEventRegisterAny(VCP, ptr, eventId, cb, null, null);
-        return processError(returnValue);
-    }
-
-    /**
      * Registers a default event implementation based on the poll()
      * system call.
      * <p>
