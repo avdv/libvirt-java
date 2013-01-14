@@ -49,6 +49,19 @@ public class Connect {
         static final int PMSUSPEND = 12;
     }
 
+    public static abstract class DomainEvent {
+        /* Event Callbacks */
+
+        interface IOErrorCallback {
+            final int eventID = DomainEventID.IO_ERROR;
+
+            void onIOError(Connect connect, Domain domain,
+                           String srcPath,
+                           String devAlias,
+                           int action);
+        }
+    }
+
     /**
      * Get the version of a connection.
      *
@@ -377,6 +390,46 @@ public class Connect {
         return processError(libvirt.virConnectDomainEventRegisterAny(VCP, ptr,
                                                                      eventID, cb,
                                                                      null, null));
+    }
+
+    int domainEventRegister(Domain domain, final DomainEvent.IOErrorCallback cb) throws LibvirtException {
+        if (cb == null)
+            throw new IllegalArgumentException("IOError callback cannot be null");
+
+        Libvirt.VirConnectDomainEventIOErrorCallback virCB = new Libvirt.VirConnectDomainEventIOErrorCallback() {
+                @Override
+                public void eventCallback(ConnectionPointer virConnectPtr, DomainPointer virDomainPointer,
+                                          String srcPath,
+                                          String devAlias,
+                                          int action,
+                                          com.sun.jna.Pointer opaque) {
+                    assert(VCP.equals(virConnectPtr));
+
+                    Domain d = new Domain(Connect.this, virDomainPointer);
+                    cb.onIOError(Connect.this, d,
+                                 srcPath,
+                                 devAlias,
+                                 action);
+                }
+            };
+
+        return domainEventRegister(domain, cb.eventID, virCB);
+    }
+
+    /**
+     * Adds a callback to receive notifications of IOError domain events
+     * occurring on a domain.
+     *
+     * @see <a
+     *      href="http://www.libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventRegisterAny">Libvirt
+     *      Documentation</a>
+     * @param cb
+     *            the IOErrorCallback instance
+     * @return The return value from this method is a positive integer identifier for the callback.
+     * @throws LibvirtException on failure
+     */
+    public int domainEventRegister(final DomainEvent.IOErrorCallback cb) throws LibvirtException {
+        return domainEventRegister(null, cb);
     }
 
     /**
