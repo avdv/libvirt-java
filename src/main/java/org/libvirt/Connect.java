@@ -360,6 +360,12 @@ public class Connect {
                                    Event event,
                                    Detail detail);
         }
+
+        public interface PMWakeupCallback {
+            final int eventID = DomainEventID.PMWAKEUP;
+
+            void onPMWakeup(Connect connect, Domain domain, int reason);
+        }
     }
 
     /**
@@ -796,6 +802,41 @@ public class Connect {
      */
     public int domainEventRegister(final DomainEvent.LifecycleCallback cb) throws LibvirtException
     {
+        return domainEventRegister(null, cb);
+    }
+
+    int domainEventRegister(Domain domain, final DomainEvent.PMWakeupCallback cb) throws LibvirtException {
+        if (cb == null)
+            throw new IllegalArgumentException("PMWakeupCallback cannot be null");
+
+        Libvirt.VirDomainEventCallback virCB =
+            new Libvirt.VirConnectDomainEventPMChangeCallback() {
+                @Override
+                public void eventCallback(ConnectionPointer virConnectPtr, DomainPointer virDomainPointer,
+                                          int reason, Pointer opaque) {
+                    assert VCP.equals(virConnectPtr);
+
+                    Domain d = new Domain(Connect.this, virDomainPointer);
+                    cb.onPMWakeup(Connect.this, d, reason);
+                }
+            };
+
+        return domainEventRegister(domain, cb.eventID, virCB);
+    }
+
+    /**
+     * Adds a callback to receive notifications of PMWakeup events
+     * occurring on some domain.
+     *
+     * @see <a
+     *      href="http://www.libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventRegisterAny">Libvirt
+     *      Documentation</a>
+     * @param cb
+     *            the PMWakeupCallback instance
+     * @return The return value from this method is a positive integer identifier for the callback.
+     * @throws LibvirtException on failure
+     */
+    public int domainEventRegister(final DomainEvent.PMWakeupCallback cb) throws LibvirtException {
         return domainEventRegister(null, cb);
     }
 
