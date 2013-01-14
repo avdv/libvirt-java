@@ -1443,4 +1443,37 @@ public class Connect {
     public boolean isAlive() throws LibvirtException {
         return (1 == processError(libvirt.virConnectIsAlive(VCP)));
     }
+
+    /**
+     * Start sending keepalive messages after interval second of
+     * inactivity and consider the connection to be broken when no
+     * response is received after count keepalive messages sent in a
+     * row.
+     * <p>
+     * In other words, sending count + 1 keepalive message results in
+     * closing the connection.
+     * <p>
+     * When interval is <= 0, no keepalive messages will be sent.
+     * <p>
+     * When count is 0, the connection will be automatically closed after
+     * interval seconds of inactivity without sending any keepalive
+     * messages.
+     * <p>
+     * <em>Note</em>: client has to implement and run event loop to be
+     * able to use keepalive messages. Failure to do so may result in
+     * connections being closed unexpectedly.
+     * <p>
+     * <em>Note</em>: This API function controls only keepalive messages sent by
+     * the client. If the server is configured to use keepalive you still
+     * need to run the event loop to respond to them, even if you disable
+     * keepalives by this function.
+     *
+     * @param interval  number of seconds of inactivity before a keepalive
+     *                  message is sent
+     * @param count     number of messages that can be sent in a row
+     * @return {@code true} when successful, {@code false} otherwise.
+     */
+    public boolean setKeepAlive(int interval, int count) throws LibvirtException {
+        return (0 == processError(libvirt.virConnectSetKeepAlive(VCP, interval, count)));
+    }
 }
