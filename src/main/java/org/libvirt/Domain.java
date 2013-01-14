@@ -1060,6 +1060,24 @@ public class Domain {
     }
 
     /**
+     * Adds a callback to receive notifications of Reboot domain events
+     * occurring on this domain.
+     *
+     * @see <a
+     *      href="http://www.libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventRegisterAny">Libvirt
+     *      Documentation</a>
+     * @param cb
+     *            the RebootCallback instance
+     * @return The return value from this method is a positive integer identifier for the callback.
+     * @throws LibvirtException on failure
+     */
+    public int domainEventRegister(final Connect.DomainEvent.RebootCallback cb)
+        throws LibvirtException
+    {
+        return virConnect.domainEventRegister(this, cb);
+    }
+
+    /**
      * Revert the domain to a given snapshot.
      *
      * @see <a href=
