@@ -125,6 +125,12 @@ public class Connect {
                            String devAlias,
                            IOErrorAction action);
         }
+
+        public interface RebootCallback {
+            final int eventID = DomainEventID.REBOOT;
+
+            void onReboot(Connect connect, Domain domain);
+        }
     }
 
     /**
@@ -498,6 +504,41 @@ public class Connect {
      * @throws LibvirtException on failure
      */
     public int domainEventRegister(final DomainEvent.IOErrorCallback cb) throws LibvirtException {
+        return domainEventRegister(null, cb);
+    }
+
+    int domainEventRegister(Domain domain, final DomainEvent.RebootCallback cb) throws LibvirtException {
+        if (cb == null)
+            throw new IllegalArgumentException("RebootCallback cannot be null");
+
+        Libvirt.VirConnectDomainEventGenericCallback virCB = new Libvirt.VirConnectDomainEventGenericCallback() {
+                @Override
+                public void eventCallback(ConnectionPointer virConnectPtr,
+                                          DomainPointer virDomainPointer,
+                                          Pointer opaque) {
+                    assert VCP.equals(virConnectPtr);
+
+                    Domain d = new Domain(Connect.this, virDomainPointer);
+                    cb.onReboot(Connect.this, d);
+                }
+            };
+
+        return domainEventRegister(domain, cb.eventID, virCB);
+    }
+
+    /**
+     * Adds a callback to receive notifications of Reboot domain events
+     * occurring on an arbitrary domain.
+     *
+     * @see <a
+     *      href="http://www.libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventRegisterAny">Libvirt
+     *      Documentation</a>
+     * @param cb
+     *            the RebootCallback instance
+     * @return The return value from this method is a positive integer identifier for the callback.
+     * @throws LibvirtException on failure
+     */
+    public int domainEventRegister(final DomainEvent.RebootCallback cb) throws LibvirtException {
         return domainEventRegister(null, cb);
     }
 
