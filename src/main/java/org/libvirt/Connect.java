@@ -66,6 +66,27 @@ public class Connect {
 
             void onReboot(Connect connect, Domain domain);
         }
+
+        /**
+         * @see <a href="http://libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a>
+         */
+        public interface LifecycleCallback {
+            public static enum Event {
+                DEFINED,
+                UNDEFINED,
+                STARTED,
+                SUSPENDED,
+                RESUMED,
+                STOPPED,
+                SHUTDOWN;
+            }
+
+            final int eventID = DomainEventID.LIFECYCLE;
+
+            void onLifecycleChange(Connect connect, Domain domain,
+                                   Event event,
+                                   int detail);
+        }
     }
 
     /**
@@ -455,6 +476,53 @@ public class Connect {
             };
 
         return domainEventRegister(domain, cb.eventID, virCB);
+    }
+
+    int domainEventRegister(Domain domain, final DomainEvent.LifecycleCallback cb) throws LibvirtException {
+        if (cb == null)
+            throw new IllegalArgumentException("LifecycleCallback cannot be null");
+
+        final DomainEvent.LifecycleCallback.Event events[] = DomainEvent.LifecycleCallback.Event.values();
+
+        Libvirt.VirConnectDomainEventCallback virCB = new Libvirt.VirConnectDomainEventCallback() {
+                @Override
+                public int eventCallback(ConnectionPointer virConnectPtr, DomainPointer virDomainPointer,
+                                         int event,
+                                         int detail,
+                                         com.sun.jna.Pointer opaque)
+                {
+                    assert(VCP.equals(virConnectPtr));
+
+                    if (0 <= event && event < events.length) {
+                        Domain d = new Domain(Connect.this, virDomainPointer);
+                        cb.onLifecycleChange(Connect.this, d,
+                                             events[event],
+                                             detail);
+                    } else {
+                        // TODO: throw an exception?
+                    }
+                    return 0;
+                }
+            };
+
+        return domainEventRegister(domain, cb.eventID, virCB);
+    }
+
+    /**
+     * Adds a callback to receive notifications of domain lifecycle events
+     * occurring on some domain.
+     *
+     * @see <a
+     *      href="http://www.libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventRegisterAny">Libvirt
+     *      Documentation</a>
+     * @param cb
+     *            the LifecycleCallback instance
+     * @return The return value from this method is a positive integer identifier for the callback.
+     * @throws LibvirtException on failure
+     */
+    public int domainEventRegister(final DomainEvent.LifecycleCallback cb) throws LibvirtException
+    {
+        return domainEventRegister(null, cb);
     }
 
     /**
