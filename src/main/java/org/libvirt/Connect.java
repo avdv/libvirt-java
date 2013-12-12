@@ -136,14 +136,218 @@ public class Connect {
          * @see <a href="http://libvirt.org/html/libvirt-libvirt.html#virConnectDomainEventCallback">virConnectDomainEventCallback</a>
          */
         public interface LifecycleCallback {
+            final class Detail {
+                int detail;
+            }
+
+            public enum DefinedDetail {
+                /**
+                 * Newly created config file.
+                 */
+                ADDED,
+
+                /**
+                 * Changed config file.
+                 */
+                UPDATED
+            }
+
+            public enum UndefinedDetail {
+                REMOVED
+            }
+
+            public enum CrashedDetail {
+                /**
+                 * Guest was panicked.
+                 */
+                PANICKED
+            }
+
+            public enum PMSuspendedDetail {
+                /**
+                 * Guest was PM suspended to memory.
+                 */
+                MEMORY,
+
+                /**
+                 * Guest was PM suspended to disk.
+                 */
+                DISK
+            }
+
+            public enum ResumedDetail {
+                /**
+                 * Normal resume due to admin unpause.
+                 */
+                UNPAUSED,
+
+                /**
+                 * Resumed for completion of migration.
+                 */
+                MIGRATED,
+
+                /**
+                 * Resumed from snapshot.
+                 */
+                FROM_SNAPSHOT
+            }
+
+            public enum ShutdownDetail {
+                /**
+                 * Guest finished shutdown sequence.
+                 */
+                FINISHED
+            }
+
+            public enum StartedDetail {
+                /**
+                 * Normal startup from boot.
+                 */
+                BOOTED,
+
+                /**
+                 * Incoming migration from another host.
+                 */
+                MIGRATED,
+
+                /**
+                 * Restored from a state file.
+                 */
+                RESTORED,
+
+                /**
+                 * Restored from snapshot
+                 */
+                FROM_SNAPSHOT,
+
+                /**
+                 * Started due to wakeup event.
+                 */
+                WAKEUP
+            }
+
+            public enum StoppedDetail {
+                /**
+                 * Normal shutdown.
+                 */
+                SHUTDOWN,
+
+                /**
+                 * Forced poweroff from host.
+                 */
+                DESTROYED,
+
+                /**
+                 * Guest crashed.
+                 */
+                CRASHED,
+
+                /**
+                 * Migrated off to another host.
+                 */
+                MIGRATED,
+
+                /**
+                 * Saved to a state file.
+                 */
+                SAVED,
+
+                /**
+                 * Host emulator/mgmt failed.
+                 */
+                FAILED,
+
+                /**
+                 * Offline snapshot was loaded.
+                 */
+                FROM_SNAPSHOT
+            }
+
+            public enum SuspendedDetail {
+                /**
+                 * Normal suspend due to admin pause.
+                 */
+                PAUSED,
+
+                /**
+                 * Suspended for offline migration.
+                 */
+                MIGRATED,
+
+                /**
+                 * Suspended due to a disk I/O error.
+                 */
+                IOERROR,
+
+                /**
+                 * Suspended due to a watchdog firing.
+                 */
+                WATCHDOG,
+
+                /**
+                 * Restored from paused state file.
+                 */
+                RESTORED,
+
+                /**
+                 * Restored from paused snapshot.
+                 */
+                FROM_SNAPSHOT,
+
+                /**
+                 * Suspended after failure during libvirt API call.
+                 */
+                API_ERROR
+            }
+
+
             public static enum Event {
-                DEFINED,
-                UNDEFINED,
-                STARTED,
-                SUSPENDED,
-                RESUMED,
-                STOPPED,
-                SHUTDOWN;
+                DEFINED {
+                    public DefinedDetail detail(final Detail d) {
+                        return DefinedDetail.values()[d.detail];
+                    }
+                },
+
+                UNDEFINED {
+                    public UndefinedDetail detail(final Detail d) {
+                        return UndefinedDetail.values()[d.detail];
+                    }
+                },
+                STARTED {
+                    public StartedDetail detail(final Detail d) {
+                        return StartedDetail.values()[d.detail];
+                    }
+                },
+                SUSPENDED {
+                    public SuspendedDetail detail(final Detail d) {
+                        return SuspendedDetail.values()[d.detail];
+                    }
+                },
+                RESUMED {
+                    public ResumedDetail detail(final Detail d) {
+                        return ResumedDetail.values()[d.detail];
+                    }
+                },
+                STOPPED {
+                    public StoppedDetail detail(final Detail d) {
+                        return StoppedDetail.values()[d.detail];
+                    }
+                },
+                SHUTDOWN {
+                    public ShutdownDetail detail(final Detail d) {
+                        return ShutdownDetail.values()[d.detail];
+                    }
+                },
+                PMSUSPENDED {
+                    public PMSuspendedDetail detail(final Detail d) {
+                        return PMSuspendedDetail.values()[d.detail];
+                    }
+                },
+                CRASHED {
+                    public CrashedDetail detail(final Detail d) {
+                        return CrashedDetail.values()[d.detail];
+                    }
+                };
             }
 
             final int eventID = DomainEventID.LIFECYCLE;
