@@ -137,7 +137,11 @@ public class Connect {
          */
         public interface LifecycleCallback {
             final class Detail {
-                int detail;
+                final int detail;
+
+                Detail(final int d) {
+                    this.detail = d;
+                }
             }
 
             public enum DefinedDetail {
@@ -354,7 +358,7 @@ public class Connect {
 
             void onLifecycleChange(Connect connect, Domain domain,
                                    Event event,
-                                   int detail);
+                                   Detail detail);
         }
     }
 
@@ -767,7 +771,7 @@ public class Connect {
                         Domain d = new Domain(Connect.this, virDomainPointer);
                         cb.onLifecycleChange(Connect.this, d,
                                              events[event],
-                                             detail);
+                                             new DomainEvent.LifecycleCallback.Detail(detail));
                     } else {
                         // TODO: throw an exception?
                     }
