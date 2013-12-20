@@ -4,6 +4,7 @@ import org.libvirt.jna.Libvirt;
 
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
+import com.sun.jna.ptr.PointerByReference;
 
 /**
  * This class represents an instance of the JNA mapped libvirt
@@ -38,8 +39,7 @@ final class Library {
      * Free memory pointed to by ptr.
      */
     static void free(Pointer ptr) {
-        Native.free(Pointer.nativeValue(ptr));
-        Pointer.nativeValue(ptr, 0L);
+        libvirt.virFree(new PointerByReference(ptr));
     }
 
     /**
