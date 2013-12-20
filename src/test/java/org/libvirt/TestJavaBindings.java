@@ -1,5 +1,8 @@
 package org.libvirt;
 
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import junit.framework.TestCase;
@@ -11,6 +14,16 @@ public final class TestJavaBindings extends TestCase {
             Integer.decode("0x87"), Integer.decode("0xd2"), Integer.decode("0x1e"), Integer.decode("0x67") };
 
     private Connect conn;
+    private volatile boolean stop;
+
+    static {
+        // do this once for each JVM instance, before connecting
+        try {
+            Connect.initEventLoop();
+        } catch (LibvirtException e) {
+            // XXX warn
+        }
+    }
 
     protected void setUp() throws LibvirtException {
         conn = new Connect("test:///default", false);
@@ -216,5 +229,61 @@ public final class TestJavaBindings extends TestCase {
         assertTrue("pool1 should be persistent", pool1.isPersistent() == 1);
         assertTrue("pool1 should not be active", pool1.isActive() == 0);        
         assertTrue("Domain2 should be active", defaultPool.isActive() == 1);         
+    }
+
+    public void testDomainEvents() throws Exception {
+        final List<Connect.DomainEvent.LifecycleCallback.Event> events = new ArrayList<Connect.DomainEvent.LifecycleCallback.Event>();
+
+        final Connect conn = this.conn;
+        final Thread t = new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        while (!stop && conn.isAlive()) conn.processEvent();
+                    } catch (Exception e) {
+                    }
+                }
+            };
+        this.stop = false;
+        //conn.setKeepAlive(3, 10);
+        t.setDaemon(true);
+        t.start();
+
+        int cbId = -1;
+        try {
+            cbId = conn.domainEventRegister(new Connect.DomainEvent.LifecycleCallback() {
+                    @Override
+                    public void onLifecycleChange(Connect c, Domain d, Event e, Detail detail)
+                    {
+                        events.add(e);
+                    }
+                });
+
+            Domain dom = conn.domainDefineXML("<domain type='test' id='2'>" + "  <name>deftest</name>"
+                + "  <uuid>004b96e1-2d78-c30f-5aa5-f03c87d21e70</uuid>" + "  <memory>8388608</memory>"
+                + "  <vcpu>2</vcpu>" + "  <os><type arch='i686'>hvm</type></os>" + "  <on_reboot>restart</on_reboot>"
+                + "  <on_poweroff>destroy</on_poweroff>" + "  <on_crash>restart</on_crash>" + "</domain>");
+
+            dom.create();         // Thread.sleep(200); assertTrue("domain is running", dom.isActive() == 1);
+            dom.suspend();        // Thread.sleep(200); assertTrue("domain is running", dom.isActive() == 1);
+            dom.resume();         // Thread.sleep(200); assertTrue("domain is running", dom.isActive() == 1);
+            dom.destroy();        // Thread.sleep(200); assertFalse("domain is running", dom.isActive() == 1);
+            dom.undefine();       // Thread.sleep(200);
+
+            // wait until (presumably) all events have been processed
+            Thread.sleep(300);
+
+            assertEquals(Arrays.asList(Connect.DomainEvent.LifecycleCallback.Event.DEFINED,
+                                       Connect.DomainEvent.LifecycleCallback.Event.STARTED,
+                                       Connect.DomainEvent.LifecycleCallback.Event.SUSPENDED,
+                                       Connect.DomainEvent.LifecycleCallback.Event.RESUMED,
+                                       Connect.DomainEvent.LifecycleCallback.Event.STOPPED,
+                                       Connect.DomainEvent.LifecycleCallback.Event.UNDEFINED),
+                         events);
+        } finally {
+            if (cbId != -1) conn.domainEventDeregister(cbId);
+            this.stop = true;
+        }
+
     }
 }
