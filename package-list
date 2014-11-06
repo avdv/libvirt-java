@@ -1,0 +1,4 @@
+org
+org.libvirt
+org.libvirt.event
+org.libvirt.jna
